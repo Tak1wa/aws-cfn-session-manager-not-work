@@ -1,0 +1,1 @@
+# aws-cfn-session-manager-not-work
