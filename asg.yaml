@@ -1,0 +1,44 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: hogehoge
+Parameters:
+  KeyPair:
+    Type: AWS::EC2::KeyPair::KeyName
+  Ami:
+    Type: AWS::EC2::Image::Id
+    Default: ami-0fb92e6b67404b2c9
+
+Resources:
+  LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: hoge-launchtemplate
+      LaunchTemplateData:
+        KeyName: !Ref KeyPair
+        ImageId: !Ref Ami
+        InstanceType: t3.small
+        IamInstanceProfile:
+          Arn: !ImportValue HogeSsmProfile
+        NetworkInterfaces: 
+        - AssociatePublicIpAddress: true
+          DeviceIndex: 0
+          # Groups:
+          # - !ImportValue HogeSecurityGroup
+
+  PublicAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MaxBatchSize: 1
+        MinInstancesInService: 0
+    Properties:
+      AutoScalingGroupName: hoge-public-asg
+      DesiredCapacity: '1'
+      MaxSize: '1'
+      MinSize: '1'
+      LaunchTemplate:
+        LaunchTemplateId: !Ref LaunchTemplate
+        Version: !GetAtt LaunchTemplate.LatestVersionNumber
+      VPCZoneIdentifier:
+        - !ImportValue PublicSubnet1
+        - !ImportValue PublicSubnet2
+      HealthCheckType: EC2

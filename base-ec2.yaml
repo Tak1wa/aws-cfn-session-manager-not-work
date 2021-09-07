@@ -1,0 +1,57 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: hogehoge
+Parameters:
+  KeyPair:
+    Type: AWS::EC2::KeyPair::KeyName
+  Ami:
+    Type: AWS::EC2::Image::Id
+    Default: ami-0fb92e6b67404b2c9
+
+Resources:
+  HogeSsmProfile: 
+    Type: AWS::IAM::InstanceProfile
+    Properties: 
+      Path: "/"
+      Roles: 
+        - !Ref HogeSsmRole
+      InstanceProfileName: HogeSsmProfile
+  HogeSsmRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+        Path: "/"
+        RoleName: HogeSsmRole
+        AssumeRolePolicyDocument: 
+          Version: 2012-10-17
+          Statement:
+          -
+            Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+        ManagedPolicyArns: 
+          - "arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM"
+          - "arn:aws:iam::aws:policy/CloudWatchAgentAdminPolicy"
+  HogeServer:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t3.small
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeType: gp3
+            VolumeSize: 30
+            DeleteOnTermination: true
+            Encrypted: true
+      SubnetId: !ImportValue PublicSubnet1
+      ImageId: !Ref Ami
+      IamInstanceProfile: !Ref HogeSsmProfile
+      KeyName: !Ref KeyPair
+      EbsOptimized: true
+      # SecurityGroupIds:
+      #   - !ImportValue HogeSecurityGroup
+
+Outputs:
+  HogeSsmProfile:
+    Value: !GetAtt HogeSsmProfile.Arn
+    Export:
+      Name: HogeSsmProfile
